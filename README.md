@@ -15,7 +15,7 @@
 
 # NxNative Launcher
 
-### The Definitive Native Game Porting & Playback Suite for Apple Silicon
+### The Definitive Native Game Porting & Game Launcher Suite for Apple Silicon
 
 [![GitHub Stars](https://img.shields.io/github/stars/rennan101/nxnative_Launcher?style=flat&color=white)](https://github.com/rennan101/nxnative_Launcher/stargazers)
 [![Core Engine](https://img.shields.io/badge/Core%20Engine-seedds%2Fnxnative-white.svg)](https://github.com/seedds/nxnative)
