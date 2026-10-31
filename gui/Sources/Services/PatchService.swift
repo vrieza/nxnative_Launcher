@@ -20,6 +20,32 @@ public final class PatchService {
         }
     }
     
+    /// A failed `git stash pop` (or merge) leaves files unmerged with `<<<<<<<` markers, which breaks
+    /// `build_ipa_from_nsp.py` with a SyntaxError. Restore each such file from HEAD (upstream);
+    /// the compatibility patches below are re-applied on top. Returns the repaired paths.
+    @discardableResult
+    public func repairUnmergedFiles(nxnativePath: String) -> [String] {
+        func git(_ args: [String]) -> String {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            p.arguments = ["-C", nxnativePath] + args
+            let pipe = Pipe()
+            p.standardOutput = pipe
+            p.standardError = Pipe()
+            guard (try? p.run()) != nil else { return "" }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            p.waitUntilExit()
+            return String(data: data, encoding: .utf8) ?? ""
+        }
+        let files = git(["diff", "--name-only", "--diff-filter=U"])
+            .split(separator: "\n").map(String.init)
+        for f in files {
+            _ = git(["checkout", "HEAD", "--", f])
+            _ = git(["reset", "-q", "HEAD", "--", f])
+        }
+        return files
+    }
+    
     @discardableResult
     public func applyPatchesIfNeeded(
         nxnativePath: String,
@@ -31,6 +57,10 @@ public final class PatchService {
         var appliedCount = 0
         var skippedCount = 0
         var errorMessages: [String] = []
+        
+        for f in repairUnmergedFiles(nxnativePath: nxnativePath) {
+            logger?("[Repo] Restored \(f) from upstream: it was left with unresolved merge conflicts", true)
+        }
         
         for def in EnginePatchRegistry.patches {
             let fileURL = root.appendingPathComponent(def.relativePath)
